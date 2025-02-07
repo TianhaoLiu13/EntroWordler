@@ -177,8 +177,9 @@ if __name__ == "__main__":
 
     # 3. Calculate the statistics of steps needed to guess each word in parallel
 
+    word_pool = word_pool[:]  # For testing purposes, you can reduce the number of words
     args_list = [(word, word_pool) for word in word_pool]
-    with Pool() as p:
+    with Pool(16) as p:
         # 'p.map' applies 'worker_function' to each element of 'word_pool' in parallel
         results = p.map(worker_function, args_list)
 
@@ -201,29 +202,29 @@ if __name__ == "__main__":
 
 
 
-if __name__ == "__main__":
-    n = 5
-    word_pool = generate_and_save_word_pool(n)
+# if __name__ == "__main__":
+#     n = 5
+#     word_pool = generate_and_save_word_pool(n)
 
-    # Select a random word from the word pool
-    target_word = random.choice(word_pool)
-    # print(target_word)  # For debugging purposes
+#     # Select a random word from the word pool
+#     target_word = random.choice(word_pool)
+#     # print(target_word)  # For debugging purposes
 
-    # # Play the Wordle game optimally
-    # play_wordle_with_optimization(target_word, word_pool, max_attempts=20)
+#     # # Play the Wordle game optimally
+#     # play_wordle_with_optimization(target_word, word_pool, max_attempts=20)
 
-    # # help you play Wordle with your friends
-    # wordle_couch(word_pool, max_attempts=6)
+#     # # help you play Wordle with your friends
+#     # wordle_couch(word_pool, max_attempts=6)
 
-    # Calculate the statistics of steps needed to guess the word correctly for all possible words in the word pool
-    steps = {}
-    for i, word in enumerate(word_pool):
-        steps[word] = play_wordle_with_optimization(word, word_pool, max_attempts=20)
-        print("word: ", word, "steps: ", steps[word],i+1, "/", len(word_pool))
-    # save steps to a file
-    with open("steps_" + str(n) + ".txt", "w") as f:
-        for word, step in steps.items():
-            f.write(word + " " + str(step) + "\n")
-        f.close()
+#     # Calculate the statistics of steps needed to guess the word correctly for all possible words in the word pool
+#     steps = {}
+#     for i, word in enumerate(word_pool):
+#         steps[word] = play_wordle_with_optimization(word, word_pool, max_attempts=20)
+#         print("word: ", word, "steps: ", steps[word],i+1, "/", len(word_pool))
+#     # save steps to a file
+#     with open("steps_" + str(n) + ".txt", "w") as f:
+#         for word, step in steps.items():
+#             f.write(word + " " + str(step) + "\n")
+#         f.close()
 
 
