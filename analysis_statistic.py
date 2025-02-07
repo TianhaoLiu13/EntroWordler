@@ -46,7 +46,7 @@ def visualize_distribution(steps_dict):
         plt.text(unique_steps[i], probabilities[i], count, ha='center', va='bottom')
     plt.show()
 if __name__ == '__main__':
-    steps = read_steps('steps_5.txt')
+    steps = read_steps('steps_5_inf_entropy.txt')
     get_statistics(steps)
     visualize_distribution(steps)
 

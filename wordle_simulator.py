@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
     # 3. Calculate the statistics of steps needed to guess each word in parallel
 
-    word_pool = word_pool[:1000]  # For testing purposes, you can reduce the number of words
+    word_pool = word_pool[:]  # For testing purposes, you can reduce the number of words
     args_list = [(word, word_pool) for word in word_pool]
     with Pool(16) as p:
         # 'p.map' applies 'worker_function' to each element of 'word_pool' in parallel
