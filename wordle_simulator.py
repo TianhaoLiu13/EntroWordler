@@ -3,6 +3,7 @@ from collections import Counter
 import numpy as np
 
 best_first_guesses = 'tares'
+best_first_guesses_inf_entropy = 'raise'
 
 def generate_and_save_word_pool(n):
     # Example of generating a word pool for n=5, can be extended to use external word lists
@@ -87,6 +88,9 @@ def calc_v_N_entropy(possible_feedbacks):
         v_N_entropy -= p * np.log(p)
     return v_N_entropy
 
+def calc_inf_entropy(possible_feedbacks):
+    return - max(possible_feedbacks.values()) / sum(possible_feedbacks.values())
+
 def get_next_guess(word_pool, current_word_pool):
     max_entropy = float("-inf")
     best_guess = None
@@ -102,6 +106,21 @@ def get_next_guess(word_pool, current_word_pool):
             #print(f"Word: {word}, Entropy: {v_N_entropy}")
     return best_guess
 
+def get_next_guess_with_inf_entropy(word_pool, current_word_pool):
+    max_entropy = float("-inf")
+    best_guess = None
+    for i, word in enumerate(word_pool):
+        #print(f"Checking word {i+1}/{len(word_pool)}")
+        possible_feedbacks = get_possible_feedbacks(current_word_pool, word)
+        inf_entropy = calc_inf_entropy(possible_feedbacks)
+        # if v_N_entropy > max_entropy - 0.1:
+        #     print(f"Word: {word}, Entropy: {v_N_entropy}")
+        if inf_entropy > max_entropy:
+            max_entropy = inf_entropy
+            best_guess = word
+            #print(f"Word: {word}, Entropy: {inf_entropy}")
+    return best_guess
+
 def play_wordle_with_optimization(target_word, word_pool, max_attempts=20):
     current_word_pool = word_pool.copy()
     #print(f"Welcome to Wordle! The secret word has {len(target_word)} letters. You have {max_attempts} attempts.")
@@ -113,6 +132,26 @@ def play_wordle_with_optimization(target_word, word_pool, max_attempts=20):
                 guess = current_word_pool[0]
             else:
                 guess = get_next_guess(word_pool, current_word_pool)
+        #print(f"\nAttempt {attempt}/{max_attempts} - Enter your guess: {guess}")
+        feedback = get_feedback(guess, target_word)
+        #print("Feedback: ", feedback)
+        if guess == target_word:
+            #print("Congratulations! You guessed the word correctly!")
+            return attempt
+        current_word_pool = update_current_word_pool(current_word_pool, guess, feedback)
+    #print(f"\nSorry, you've run out of attempts. The correct word was '{target_word}'. Better luck next time!")
+
+def play_wordle_with_optimization_inf_entropy(target_word, word_pool, max_attempts=20):
+    current_word_pool = word_pool.copy()
+    #print(f"Welcome to Wordle! The secret word has {len(target_word)} letters. You have {max_attempts} attempts.")
+    for attempt in range(1, max_attempts + 1):
+        if attempt == 1:
+            guess = best_first_guesses_inf_entropy
+        else:
+            if len(current_word_pool) == 1:
+                guess = current_word_pool[0]
+            else:
+                guess = get_next_guess_with_inf_entropy(word_pool, current_word_pool)
         #print(f"\nAttempt {attempt}/{max_attempts} - Enter your guess: {guess}")
         feedback = get_feedback(guess, target_word)
         #print("Feedback: ", feedback)
@@ -161,6 +200,16 @@ def worker_function(args):
     step_count = play_wordle_with_optimization(word, word_pool, max_attempts=20)
     return word, step_count
 
+def worker_function_inf_entropy(args):
+    """
+    This function will be executed in parallel for each word.
+    It returns (word, steps_taken).
+    """
+    # 'play_wordle_with_optimization' is assumed to be defined elsewhere in your code
+    word, word_pool = args
+    step_count = play_wordle_with_optimization_inf_entropy(word, word_pool, max_attempts=20)
+    return word, step_count
+
 
 if __name__ == "__main__":
     n = 5
@@ -175,28 +224,49 @@ if __name__ == "__main__":
     # play_wordle_with_optimization(target_word, word_pool, max_attempts=20)
     # wordle_couch(word_pool, max_attempts=6)
 
+    # # 3. Calculate the statistics of steps needed to guess each word in parallel
+
+    # word_pool = word_pool[:]  # For testing purposes, you can reduce the number of words
+    # args_list = [(word, word_pool) for word in word_pool]
+    # with Pool(16) as p:
+    #     # 'p.map' applies 'worker_function' to each element of 'word_pool' in parallel
+    #     results = p.map(worker_function, args_list)
+
+    # # 4. Convert results (a list of (word, steps)) into a dictionary
+    # steps = dict(results)
+
+    # # 5. Print progress
+    # for i, (word, step) in enumerate(results):
+    #     print(f"word: {word}, steps: {step}, {i+1}/{len(word_pool)}")
+
+    # # 6. Save steps to a file
+    # filename = f"steps_{n}.txt"
+    # with open(filename, "w") as f:
+    #     for word, step in steps.items():
+    #         f.write(f"{word} {step}\n")
+
+    # print(f"\nFinished! Results saved to '{filename}'.")
+
+    # play_wordle_with_optimization_inf_entropy(target_word, word_pool, max_attempts=20)
+
     # 3. Calculate the statistics of steps needed to guess each word in parallel
 
-    word_pool = word_pool[:]  # For testing purposes, you can reduce the number of words
+    word_pool = word_pool[:1000]  # For testing purposes, you can reduce the number of words
     args_list = [(word, word_pool) for word in word_pool]
     with Pool(16) as p:
         # 'p.map' applies 'worker_function' to each element of 'word_pool' in parallel
-        results = p.map(worker_function, args_list)
-
+        results = p.map(worker_function_inf_entropy, args_list)
+        
     # 4. Convert results (a list of (word, steps)) into a dictionary
     steps = dict(results)
-
-    # 5. Print progress
-    for i, (word, step) in enumerate(results):
-        print(f"word: {word}, steps: {step}, {i+1}/{len(word_pool)}")
-
-    # 6. Save steps to a file
-    filename = f"steps_{n}.txt"
-    with open(filename, "w") as f:
+    
+    # save steps to a file
+    with open("steps_" + str(n) + "_inf_entropy.txt", "w") as f:
         for word, step in steps.items():
-            f.write(f"{word} {step}\n")
+            f.write(word + " " + str(step) + "\n")
+        f.close()
+    print("Finished! Results saved to 'steps_" + str(n) + "_inf_entropy.txt'.")
 
-    print(f"\nFinished! Results saved to '{filename}'.")
 
 
 
