@@ -1,2 +1,2 @@
-# Wordler
-Optimized strategy for wordle
+# EntroWordler
+Optimized strategy for wordle based on entropy.
